@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Citas - RED-LSG</title>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for statistics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* --- Estilos Generales --- */
+        :root {
+            --color-rojo: #c8102e; /* Tono de rojo corporativo */
+            --color-negro: #121212;
+            --color-blanco: #ffffff;
+            --color-gris-claro: #f4f4f4;
+            --color-gris-oscuro: #6c757d;
+            --sombra-caja: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--color-gris-claro);
+            color: var(--color-negro);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- Contenedor Principal --- */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: var(--color-blanco);
+            border-radius: 12px;
+            box-shadow: var(--sombra-caja);
+            overflow: hidden;
+        }
+
+        /* --- Pantalla de Login --- */
+        #login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            min-height: 50vh;
+        }
+
+        #login-screen h1 {
+            color: var(--color-rojo);
+            margin-bottom: 10px;
+        }
+        
+        #login-screen .logo-container {
+             margin-bottom: 20px;
+        }
+        
+        #login-screen .logo {
+            width: 150px;
+            height: auto;
+        }
+
+        .login-form {
+            width: 100%;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .login-form input {
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--color-rojo);
+            box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.2);
+        }
+
+        .login-form button {
+            padding: 12px;
+            background-color: var(--color-rojo);
+            color: var(--color-blanco);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .login-form button:hover {
+            background-color: #a10d24;
+            transform: translateY(-2px);
+        }
+        
+        #login-error {
+            color: var(--color-rojo);
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            height: 20px;
+        }
+
+        /* --- Aplicación Principal --- */
+        .main-app {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background-color: var(--color-rojo);
+            color: var(--color-blanco);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        header h1 {
+            font-size: 24px;
+        }
+        
+        .header-logo {
+            width: 120px;
+        }
+
+        main {
+            padding: 30px 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        @media (max-width: 992px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        h2 {
+            font-size: 22px;
+            color: var(--color-negro);
+            border-bottom: 3px solid var(--color-rojo);
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+        
+        /* --- Formulario de Citas --- */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--color-gris-oscuro);
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Poppins', sans-serif;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+             outline: none;
+            border-color: var(--color-rojo);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .phone-input-container {
+            position: relative;
+        }
+
+        #phone-validation-msg {
+            font-size: 12px;
+            color: var(--color-rojo);
+            position: absolute;
+            bottom: -15px;
+            left: 5px;
+            visibility: hidden;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--color-rojo);
+            color: var(--color-blanco);
+        }
+        .btn-primary:hover {
+            background-color: #a10d24;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-negro);
+            color: var(--color-blanco);
+        }
+        .btn-secondary:hover {
+            background-color: #333;
+            transform: translateY(-2px);
+        }
+
+        .btn-tertiary {
+            background-color: var(--color-gris-oscuro);
+            color: var(--color-blanco);
+        }
+        .btn-tertiary:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* --- Estadísticas y Folio --- */
+        .stats-folio-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+        
+        .folio-display {
+            background-color: var(--color-gris-claro);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .folio-display p {
+            font-size: 16px;
+            color: var(--color-gris-oscuro);
+            margin-bottom: 5px;
+        }
+        .folio-display #folio-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-rojo);
+        }
+        
+        /* --- Footer --- */
+        footer {
+            background-color: var(--color-negro);
+            color: var(--color-blanco);
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        .footer-links {
+            margin-bottom: 15px;
+        }
+        
+        .footer-links a {
+            color: var(--color-blanco);
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--color-rojo);
+        }
+        
+        .footer-copyright {
+            font-size: 14px;
+            color: var(--color-gris-oscuro);
+        }
+        
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 12px;
+            box-shadow: var(--sombra-caja);
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+            color: var(--color-rojo);
+        }
+
+        .modal-content p {
+            margin-bottom: 20px;
+        }
+        
+        .modal-content .btn {
+            margin: 0 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Contenedor General -->
+    <div class="container">
+        
+        <!-- Pantalla de Login -->
+        <div id="login-screen">
+            <div class="logo-container">
+                 <!-- Logo de la empresa -->
+                <img src="https://raw.githubusercontent.com/usigli75/citasredlsg/main/LOGOTIPO%20RED-LAND.png" alt="Logo RED-LSG" class="logo">
+            </div>
+            <h1>Acceso al Sistema de Citas</h1>
+            <p style="color: var(--color-gris-oscuro); margin-bottom: 20px;">Ingresa tu usuario y contraseña. Si no existen, se crearán.</p>
+            <form id="login-form" class="login-form">
+                <input type="text" id="username" placeholder="Nombre de Usuario" required>
+                <input type="password" id="password" placeholder="Contraseña" required>
+                <button type="submit">Ingresar</button>
+            </form>
+            <div id="login-error"></div>
+        </div>
+
+        <!-- Aplicación Principal (inicialmente oculta) -->
+        <div id="main-app" class="main-app hidden">
+            <header>
+                 <img src="https://raw.githubusercontent.com/usigli75/citasredlsg/main/LOGOTIPO%20RED-LAND.png" alt="Logo RED-LSG" class="header-logo">
+                <h1>Gestión de Citas - Comercializadora RED-LSG</h1>
+            </header>
+            
+            <main>
+                <!-- Columna 1: Formulario -->
+                <section id="form-section">
+                    <h2>Registrar Nueva Cita</h2>
+                    <form id="appointment-form">
+                        <div class="form-group">
+                            <label for="nombre">Nombre Completo</label>
+                            <input type="text" id="nombre" name="nombre" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="telefono">Teléfono</label>
+                            <div class="phone-input-container">
+                                <input type="tel" id="telefono" name="telefono" required maxlength="10">
+                                <span id="phone-validation-msg">El teléfono debe tener 10 dígitos.</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="estado">Estado</label>
+                            <select id="estado" name="estado" required></select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="tipo_tramite">Tipo de Trámite</label>
+                            <select id="tipo_tramite" name="tipo_tramite" required>
+                                <option value="" disabled selected>Selecciona una opción</option>
+                                <option value="Importacion">Importación</option>
+                                <option value="Exportacion">Exportación</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fecha_hora">Fecha y Hora de la Cita</label>
+                            <input type="datetime-local" id="fecha_hora" name="fecha_hora" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="comentario">Comentarios Adicionales</label>
+                            <textarea id="comentario" name="comentario"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Guardar Cita</button>
+                            <button type="button" id="preview-pdf-btn" class="btn btn-secondary">Previsualizar (PDF)</button>
+                            <button type="button" id="clear-form-btn" class="btn btn-tertiary">Limpiar Formulario</button>
+                        </div>
+                    </form>
+                </section>
+                
+                <!-- Columna 2: Estadísticas y Folio -->
+                <section class="stats-folio-container">
+                    <div id="folio-section">
+                        <h2>Siguiente Folio</h2>
+                        <div class="folio-display">
+                            <p>El folio para la próxima cita será:</p>
+                            <span id="folio-number">Cita-001</span>
+                        </div>
+                    </div>
+
+                    <div id="stats-section">
+                        <h2>Estadísticas de Trámites</h2>
+                        <canvas id="tramites-chart"></canvas>
+                    </div>
+                </section>
+            </main>
+            
+            <footer>
+                <div class="footer-links">
+                    <a href="https://www.redlandluggage.com/" target="_blank">Página Web</a>
+                    <a href="https://www.instagram.com/redland.mx/" target="_blank">Instagram</a>
+                    <a href="https://www.facebook.com/profile.php?id=61557230548689" target="_blank">Facebook</a>
+                </div>
+                <div class="footer-copyright">
+                    &copy; 2024 Comercializadora RED-LSG S.A. DE C.V. Todos los derechos reservados.
+                </div>
+            </footer>
+        </div>
+
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Referencias a Elementos del DOM ---
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginError = document.getElementById('login-error');
+        
+        const appointmentForm = document.getElementById('appointment-form');
+        const phoneInput = document.getElementById('telefono');
+        const phoneValidationMsg = document.getElementById('phone-validation-msg');
+        const stateSelect = document.getElementById('estado');
+        const folioDisplay = document.getElementById('folio-number');
+        const clearFormBtn = document.getElementById('clear-form-btn');
+        const previewPdfBtn = document.getElementById('preview-pdf-btn');
+
+        // --- Constantes y Variables de Estado ---
+        const USERS_DB_KEY = 'redlsg_users';
+        const APPOINTMENTS_DB_KEY = 'redlsg_appointments';
+        let appointments = JSON.parse(localStorage.getItem(APPOINTMENTS_DB_KEY)) || [];
+        let chartInstance = null;
+        
+        const estadosDeMexico = [
+            "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Chiapas",
+            "Chihuahua", "Coahuila", "Colima", "Durango", "Guanajuato", "Guerrero", "Hidalgo",
+            "Jalisco", "México", "Michoacán", "Morelos", "Nayarit", "Nuevo León", "Oaxaca",
+            "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa", "Sonora",
+            "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
+        ];
+
+        // --- Funciones ---
+
+        /**
+         * Inicializa la aplicación: llena el selector de estados,
+         * actualiza el folio y renderiza el gráfico.
+         */
+        function initApp() {
+            // Llenar selector de estados
+            stateSelect.innerHTML = '<option value="" disabled selected>Selecciona un estado</option>';
+            estadosDeMexico.forEach(estado => {
+                const option = document.createElement('option');
+                option.value = estado;
+                option.textContent = estado;
+                stateSelect.appendChild(option);
+            });
+            
+            // Establece la fecha y hora mínima para el input datetime-local
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            const localISOTime = now.toISOString().slice(0,16);
+            document.getElementById('fecha_hora').min = localISOTime;
+
+            updateFolio();
+            renderChart();
+        }
+
+        /**
+         * Maneja el evento de inicio de sesión o registro.
+         * @param {Event} e - El evento del formulario.
+         */
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            loginError.textContent = '';
+
+            if (!username || !password) {
+                loginError.textContent = 'Usuario y contraseña son requeridos.';
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem(USERS_DB_KEY)) || {};
+            
+            if (users[username]) { // El usuario existe
+                if (users[username] === password) {
+                    showMainApp();
+                } else {
+                    loginError.textContent = 'Contraseña incorrecta.';
+                }
+            } else { // El usuario no existe, se crea automáticamente
+                users[username] = password;
+                localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+                showConfirmationModal('Usuario creado', `¡Bienvenido, ${username}! Tu cuenta ha sido creada exitosamente.`, showMainApp);
+            }
+        }
+        
+        function showConfirmationModal(title, message, callback) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>${title}</h3>
+                    <p>${message}</p>
+                    <button class="btn btn-primary" id="modal-ok-btn">Aceptar</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('modal-ok-btn').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                if (callback) callback();
+            });
+        }
+
+
+        /**
+         * Oculta el login y muestra la aplicación principal.
+         */
+        function showMainApp() {
+            loginScreen.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            initApp();
+        }
+
+        /**
+         * Valida el campo de teléfono en tiempo real.
+         */
+        function validatePhone() {
+            const phone = phoneInput.value;
+            if (phone.length > 0 && phone.length < 10) {
+                phoneValidationMsg.style.visibility = 'visible';
+                phoneInput.style.borderColor = 'var(--color-rojo)';
+            } else {
+                phoneValidationMsg.style.visibility = 'hidden';
+                phoneInput.style.borderColor = '#ccc';
+            }
+        }
+        
+        /**
+         * Actualiza el número de folio mostrado en la UI.
+         */
+        function updateFolio() {
+            const nextId = appointments.length + 1;
+            const folio = `Cita-${String(nextId).padStart(3, '0')}`;
+            folioDisplay.textContent = folio;
+        }
+
+        /**
+         * Renderiza o actualiza el gráfico de estadísticas.
+         */
+        function renderChart() {
+            const ctx = document.getElementById('tramites-chart').getContext('2d');
+            const counts = appointments.reduce((acc, curr) => {
+                if (curr.tipo_tramite === 'Importacion') acc.importacion++;
+                if (curr.tipo_tramite === 'Exportacion') acc.exportacion++;
+                return acc;
+            }, { importacion: 0, exportacion: 0 });
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Importación', 'Exportación'],
+                    datasets: [{
+                        label: '# de Trámites',
+                        data: [counts.importacion, counts.exportacion],
+                        backgroundColor: [
+                            'rgba(200, 16, 46, 0.7)', // Rojo
+                            'rgba(18, 18, 18, 0.7)'  // Negro
+                        ],
+                        borderColor: [
+                            'rgba(200, 16, 46, 1)',
+                            'rgba(18, 18, 18, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        /**
+         * Maneja el guardado de una nueva cita.
+         * @param {Event} e - El evento del formulario.
+         */
+        function saveAppointment(e) {
+            e.preventDefault();
+
+            // Validación final del teléfono
+            if (phoneInput.value.length !== 10) {
+                showConfirmationModal('Error de Validación', 'El número de teléfono debe contener exactamente 10 dígitos.');
+                return;
+            }
+
+            const formData = new FormData(appointmentForm);
+            const newAppointment = {
+                id: `Cita-${String(appointments.length + 1).padStart(3, '0')}`,
+                nombre: formData.get('nombre'),
+                telefono: formData.get('telefono'),
+                estado: formData.get('estado'),
+                tipo_tramite: formData.get('tipo_tramite'),
+                fecha_hora: formData.get('fecha_hora'),
+                comentario: formData.get('comentario')
+            };
+
+            appointments.push(newAppointment);
+            localStorage.setItem(APPOINTMENTS_DB_KEY, JSON.stringify(appointments));
+
+            showConfirmationModal('Cita Guardada', `La cita con folio ${newAppointment.id} ha sido guardada exitosamente.`);
+            
+            updateFolio();
+            renderChart();
+            appointmentForm.reset();
+            validatePhone(); // reset visual validation
+        }
+
+        /**
+         * Limpia los campos del formulario.
+         */
+        function clearForm() {
+            appointmentForm.reset();
+            validatePhone();
+            showConfirmationModal('Formulario Limpio', 'Se han borrado los datos del formulario.');
+        }
+
+        /**
+         * Genera y previsualiza un PDF con los datos del formulario.
+         */
+        function previewPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const nombre = document.getElementById('nombre').value;
+            const telefono = document.getElementById('telefono').value;
+            const estado = document.getElementById('estado').value;
+            const tramite = document.getElementById('tipo_tramite').value;
+            const fechaHora = document.getElementById('fecha_hora').value;
+            const comentario = document.getElementById('comentario').value;
+
+            if (!nombre || !telefono || !estado || !tramite || !fechaHora) {
+                showConfirmationModal('Datos incompletos', 'Por favor, llena todos los campos requeridos antes de generar el PDF.');
+                return;
+            }
+
+            // Encabezado del PDF
+            doc.setFontSize(20);
+            doc.setTextColor(200, 16, 46); // Rojo RED-LSG
+            doc.text("Comprobante de Cita - RED-LSG", 105, 20, null, null, 'center');
+            
+            // Folio
+            doc.setFontSize(14);
+            doc.setTextColor(18, 18, 18); // Negro
+            doc.text(`Folio: ${folioDisplay.textContent}`, 20, 40);
+
+            // Contenido de la cita
+            doc.setFontSize(12);
+            doc.text(`Nombre: ${nombre}`, 20, 50);
+            doc.text(`Teléfono: ${telefono}`, 20, 60);
+            doc.text(`Estado: ${estado}`, 20, 70);
+            doc.text(`Tipo de Trámite: ${tramite}`, 20, 80);
+            
+            const fechaFormateada = new Date(fechaHora).toLocaleString('es-MX');
+            doc.text(`Fecha y Hora: ${fechaFormateada}`, 20, 90);
+            
+            doc.text("Comentarios:", 20, 100);
+            const splitComentarios = doc.splitTextToSize(comentario || 'N/A', 170);
+            doc.text(splitComentarios, 20, 105);
+
+            // Pie de página del PDF
+            doc.setLineWidth(0.5);
+            doc.line(20, 280, 190, 280);
+            doc.setFontSize(10);
+            doc.setTextColor(108, 117, 125); // Gris
+            doc.text("Gracias por su preferencia.", 105, 285, null, null, 'center');
+
+            doc.output('dataurlnewwindow');
+        }
+
+
+        // --- Asignación de Event Listeners ---
+        loginForm.addEventListener('submit', handleLogin);
+        appointmentForm.addEventListener('submit', saveAppointment);
+        phoneInput.addEventListener('input', validatePhone);
+        clearFormBtn.addEventListener('click', clearForm);
+        previewPdfBtn.addEventListener('click', previewPdf);
+
+    });
+    </script>
+</body>
+</html>
